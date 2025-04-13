@@ -1,0 +1,100 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  checks: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    env:
+      TESTING: "true"
+      ENV: "test"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install Poetry
+        run: |
+          pip install --upgrade pip
+          pip install poetry
+
+      - name: Install dependencies with Poetry
+        run: |
+          poetry install
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.create false
+          poetry config virtualenvs.in-project false
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Node.js dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run Vue.js Linters
+        run: |
+          cd frontend
+          npm run lint
+
+      # Type Check
+      - name: Type Check
+        run: |
+          cd frontend
+          npm run type-check
+
+      # Build sans la génération du feed pour le CI
+      - name: Build Project (CI Check Only)
+        run: |
+          cd frontend
+          npm run build
+
+  security-scans:
+    runs-on: ubuntu-latest
+    # if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
+
+      - name: Install dependencies
+        run: |
+          pip install pytest
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run Bandit
+        run: |
+          pip install bandit
+          bandit -r . -ll -s B101
+
+      - name: Run safety
+        run: |
+          pip install safety
+          safety check --ignore=67599 --ignore=66962

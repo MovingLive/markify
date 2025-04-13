@@ -1,0 +1,62 @@
+name: Conditional Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      deploy_option:
+        description: "Choose deployment option: frontend, backend, both"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - frontend
+          - backend
+          - both
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  discussions: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Important to allow Release Please to access the full history
+
+      - name: Release Please
+        id: release
+        uses: googleapis/release-please-action@v4
+        with:
+          token: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
+          release-type: "simple" # or 'python', depending on your project type
+
+  deploy-frontend:
+    if: ${{ github.event.inputs.deploy_option == 'frontend' || github.event.inputs.deploy_option == 'both' }}
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Trigger Render Deployment for Frontend
+        run: |
+          curl -X POST ${{ secrets.RENDER_FRONTEND_WEBHOOK }}
+
+  deploy-backend:
+    if: ${{ github.event.inputs.deploy_option == 'backend' || github.event.inputs.deploy_option == 'both' }}
+    needs: [release]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger Render Deployment for Backend
+        run: |
+          curl -X POST ${{ secrets.RENDER_API_WEBHOOK }}

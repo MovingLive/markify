@@ -1,0 +1,69 @@
+{
+    "inputs": [
+        {
+            "type": "promptString",
+            "id": "gh-pat",
+            "description": "GitHub PAT",
+            "password": true
+        },
+        {
+            "type": "promptString",
+            "id": "db-username",
+            "description": "Nom d'utilisateur DB"
+        },
+        {
+            "type": "promptString",
+            "id": "db-password",
+            "description": "Mot de passe DB",
+            "password": true
+        },
+        {
+            "type": "promptString",
+            "id": "db-host",
+            "description": "Nom d'hôte (ex: localhost:5432)"
+        },
+        {
+            "type": "promptString",
+            "id": "db-name",
+            "description": "Nom de la base"
+        }
+    ],
+    "servers": {
+        "github": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@modelcontextprotocol/server-github"
+            ],
+            "env": {
+                "GITHUB_PERSONAL_ACCESS_TOKEN": "${input:gh-pat}"
+            }
+        },
+        "postgres": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "@modelcontextprotocol/server-postgres",
+                // On reconstruit l'URL à partir des inputs
+                "postgresql://${input:db-username}:${input:db-password}@${input:db-host}/${input:db-name}"
+            ]
+        },
+        "fetch": {
+            "type": "stdio",
+            "command": "npx",
+            "args": [
+                "-y",
+                "@kazuph/mcp-fetch"
+            ]
+        },
+        "playwright": {
+            "command": "npx",
+            "args": [
+                "@playwright/mcp@latest",
+                "--browser",
+                "chromium"
+            ]
+        },
+    }
+}
