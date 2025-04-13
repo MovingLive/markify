@@ -1,6 +1,6 @@
 import { ScrapingResult, ScrapingStatus } from '@/types/types';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:8000/api';
 
 export async function scrapeDocumentation(url: string): Promise<ScrapingResult> {
   const response = await fetch(`${API_BASE_URL}/scrape`, {

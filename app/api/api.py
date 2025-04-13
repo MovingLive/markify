@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, status
-from app.services.documentation_scraper import DocumentationScraper
+from h11 import Request
 
 api_router = APIRouter()
 
@@ -11,6 +11,6 @@ async def health():
 
 
 @api_router.post("/scrape")
-async def scrape_documentation(request: ScrapeRequest) -> str:
+async def scrape_documentation(request: Request) -> str:
     """Start scraping documentation from the given URL."""
     return "Hello World"
