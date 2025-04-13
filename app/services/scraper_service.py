@@ -1,5 +1,4 @@
 """Service de scraping de documentation web vers markdown."""
-import os
 import asyncio
 import uuid
 from collections import deque
@@ -11,8 +10,8 @@ import aiohttp
 import html2text
 from bs4 import BeautifulSoup
 
-# Dictionnaire global pour suivre la progression des tâches de scraping
-scraping_tasks: Dict[str, Dict] = {}
+from app.services.crawl4ai_service import fetch_mcp_crawl4ai
+from app.services.task_store import scraping_tasks
 
 
 def normalize_url(url: str) -> str:
@@ -157,7 +156,7 @@ async def crawl_and_collect_async(start_url: str, task_id: str) -> Dict[str, str
     return url_to_markdown
 
 
-def start_scraping_task(url: str) -> str:
+def start_scraping_task(url: str, use_crawl4ai: bool = False) -> str:
     """Démarre une tâche de scraping et retourne son identifiant."""
     task_id = str(uuid.uuid4())
     
@@ -171,11 +170,15 @@ def start_scraping_task(url: str) -> str:
         "total_pages": 0,
         "progress": 0,
         "markdown_content": None,
-        "url_to_markdown": None
+        "url_to_markdown": None,
+        "use_crawl4ai": use_crawl4ai
     }
     
-    # Lancer la tâche en arrière-plan
-    asyncio.create_task(crawl_and_collect_async(url, task_id))
+    # Lancer la tâche en arrière-plan en fonction du mode choisi
+    if use_crawl4ai:
+        asyncio.create_task(fetch_mcp_crawl4ai(url, task_id))
+    else:
+        asyncio.create_task(crawl_and_collect_async(url, task_id))
     
     return task_id
 

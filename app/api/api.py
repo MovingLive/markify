@@ -4,7 +4,8 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, Query
 from fastapi.responses import JSONResponse, Response
 
 from app.schemas.scraper_schemas import ContentResponse, ScraperRequest, ScraperResponse, TaskStatus
-from app.services.scraper_service import get_markdown_content, get_task_status, start_scraping_task
+from app.services.scraper_service import start_scraping_task
+from app.services.task_store import get_task_status, get_markdown_content
 
 api_router = APIRouter()
 
@@ -26,9 +27,12 @@ async def scrape_documentation(
     
     La tâche s'exécute en arrière-plan et renvoie un identifiant de tâche unique
     que vous pouvez utiliser pour vérifier son état.
+    
+    - Si use_crawl4ai est True, utilise l'API crawl4ai via le protocole MCP pour extraire le contenu.
+    - Si use_crawl4ai est False (défaut), utilise le scraper interne.
     """
-    # Démarrer le scraping en arrière-plan
-    task_id = start_scraping_task(str(request.url))
+    # Démarrer le scraping en arrière-plan avec l'option crawl4ai si demandée
+    task_id = start_scraping_task(str(request.url), use_crawl4ai=request.use_crawl4ai)
     
     return ScraperResponse(
         task_id=task_id,
@@ -109,7 +113,8 @@ async def download_markdown_file(
     # Extraire le nom du domaine de l'URL pour nommer le fichier
     url = task_status.get("url", "")
     filename = url.split("//")[-1].split("/")[0].replace(".", "_")
-    filename = f"{filename}_{datetime.now().strftime('%Y%m%d')}.md"
+    method = "crawl4ai" if task_status.get("use_crawl4ai") else "scraper"
+    filename = f"{filename}_{method}_{datetime.now().strftime('%Y%m%d')}.md"
     
     # Création d'une réponse directe à partir du contenu en mémoire
     response = Response(content=content, media_type="text/markdown")

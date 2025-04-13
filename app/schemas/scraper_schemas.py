@@ -1,6 +1,7 @@
 """Schémas pour l'API de scraping."""
 
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, HttpUrl, field_validator
 
@@ -9,6 +10,7 @@ class ScraperRequest(BaseModel):
     """Schéma pour la requête de scraping."""
 
     url: HttpUrl
+    use_crawl4ai: bool = False
 
     @field_validator("url")
     @classmethod
@@ -33,9 +35,9 @@ class TaskStatus(BaseModel):
 
     task_id: str
     status: str
-    url: str | None = None
-    start_time: datetime | None = None
-    end_time: datetime | None = None
+    url: Optional[str] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
     progress: int = 0
     processed_pages: int = 0
     total_pages: int = 0

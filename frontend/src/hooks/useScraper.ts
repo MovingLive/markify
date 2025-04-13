@@ -22,8 +22,11 @@ export function useScraper() {
   /**
    * Lance le scraping d'une URL et gère la progression
    * Le téléchargement est automatique une fois terminé
+   * 
+   * @param url URL à scraper
+   * @param useCrawl4ai Si true, utilise l'API crawl4ai au lieu du scraper standard
    */
-  const scrape = async (url: string) => {
+  const scrape = async (url: string, useCrawl4ai: boolean = false) => {
     setStatus({ isLoading: true, progress: 0, error: null });
     setResult(null);
 
@@ -34,7 +37,7 @@ export function useScraper() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({ url, use_crawl4ai: useCrawl4ai }),
       });
       
       if (!response.ok) {
@@ -70,6 +73,7 @@ export function useScraper() {
               content: resultData.content,
               status: resultData.status,
               timestamp: resultData.timestamp,
+              useCrawl4ai: useCrawl4ai
             };
             
             setResult(scrapingResult);
