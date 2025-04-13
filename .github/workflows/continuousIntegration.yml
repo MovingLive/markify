@@ -69,7 +69,7 @@ jobs:
       - name: Build Project (CI Check Only)
         run: |
           cd frontend
-          npm run build-ci
+          npm run build
 
   security-scans:
     runs-on: ubuntu-latest
