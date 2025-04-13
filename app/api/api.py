@@ -5,13 +5,16 @@ from fastapi.responses import Response
 
 from app.schemas.scraper_schemas import (
     ContentResponse,
+    ExportFormat,
     ScraperRequest,
     ScraperResponse,
     TaskStatus,
 )
 from app.services.scraper_service import (
     get_markdown_content,
+    get_task_filename,
     get_task_status,
+    get_zip_content,
     start_scraping_task,
 )
 
@@ -35,8 +38,10 @@ async def scrape_documentation(
     La tâche s'exécute en arrière-plan et renvoie un identifiant de tâche unique
     que vous pouvez utiliser pour vérifier son état.
     """
-    # Démarrer le scraping en arrière-plan
-    task_id = start_scraping_task(str(request.url))
+    # Démarrer le scraping en arrière-plan avec les options de format et nom de fichier
+    task_id = start_scraping_task(
+        str(request.url), format=request.format, filename=request.filename
+    )
 
     return ScraperResponse(
         task_id=task_id,
@@ -66,6 +71,8 @@ async def get_scraping_progress(
         progress=task_status.get("progress", 0),
         processed_pages=task_status.get("processed_pages", 0),
         total_pages=task_status.get("total_pages", 0),
+        format=task_status.get("format", ExportFormat.SINGLE_FILE),
+        filename=task_status.get("filename"),
     )
 
 
@@ -95,6 +102,8 @@ async def get_scraping_result(
         content=content,
         status="success",
         timestamp=datetime.now().isoformat(),
+        format=task_status.get("format", ExportFormat.SINGLE_FILE),
+        filename=task_status.get("filename"),
     )
 
 
@@ -103,7 +112,9 @@ async def download_markdown_file(
     task_id: str = Path(..., description="L'identifiant de la tâche de scraping"),
 ) -> Response:
     """
-    Télécharge le fichier Markdown généré par une tâche de scraping spécifique.
+    Télécharge le fichier généré par une tâche de scraping spécifique.
+    Selon le format choisi, renvoie un fichier Markdown unique ou un fichier ZIP
+    contenant un fichier Markdown par page.
     """
     task_status = get_task_status(task_id)
 
@@ -113,17 +124,25 @@ async def download_markdown_file(
     if task_status["status"] != "completed":
         raise HTTPException(status_code=400, detail="La tâche n'est pas encore terminée")
 
-    content = get_markdown_content(task_id)
+    # Récupérer le nom du fichier défini pour la tâche
+    filename = get_task_filename(task_id) or "documentation"
 
-    if not content:
-        raise HTTPException(status_code=404, detail="Contenu non trouvé")
+    # Déterminer le format demandé
+    export_format = task_status.get("format", ExportFormat.SINGLE_FILE)
 
-    # Extraire le nom du domaine de l'URL pour nommer le fichier
-    url = task_status.get("url", "")
-    filename = url.split("//")[-1].split("/")[0].replace(".", "_")
-    filename = f"{filename}_{datetime.now().strftime('%Y%m%d')}.md"
+    if export_format == ExportFormat.SINGLE_FILE:
+        content = get_markdown_content(task_id)
+        if not content:
+            raise HTTPException(status_code=404, detail="Contenu non trouvé")
 
-    # Création d'une réponse directe à partir du contenu en mémoire
-    response = Response(content=content, media_type="text/markdown")
-    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        response = Response(content=content, media_type="text/markdown")
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}.md"
+    else:  # ZIP_FILES
+        content = get_zip_content(task_id)
+        if not content:
+            raise HTTPException(status_code=404, detail="Contenu ZIP non trouvé")
+
+        response = Response(content=content, media_type="application/zip")
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}.zip"
+
     return response

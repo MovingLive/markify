@@ -4,9 +4,14 @@ import { ProgressIndicator } from "./components/ProgressIndicator";
 import { ResultView } from "./components/ResultView";
 import { UrlInput } from "./components/UrlInput";
 import { useScraper } from "./hooks/useScraper";
+import { ScrapingOptions } from "./types/types";
 
 function App() {
-  const { scrape, downloadResult, status, result } = useScraper();
+  const { scrape, status, result } = useScraper();
+
+  const handleSubmit = (url: string, options: ScrapingOptions) => {
+    scrape(url, options);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -26,7 +31,7 @@ function App() {
             </p>
           </div>
 
-          <UrlInput onSubmit={scrape} isLoading={status.isLoading} />
+          <UrlInput onSubmit={handleSubmit} isLoading={status.isLoading} />
 
           {status.isLoading && <ProgressIndicator progress={status.progress} />}
 

@@ -1,4 +1,4 @@
-import { ScrapingResult } from "@/types/types";
+import { ScrapingOptions, ScrapingResult } from "@/types/types";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
@@ -7,14 +7,19 @@ const API_BASE_URL = "http://localhost:8000/api";
  * Une fois terminé, télécharge automatiquement le fichier markdown.
  */
 export async function scrapeDocumentation(
-  url: string
+  url: string,
+  options: ScrapingOptions
 ): Promise<ScrapingResult> {
   const response = await fetch(`${API_BASE_URL}/scrape`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ url }),
+    body: JSON.stringify({
+      url,
+      format: options.format,
+      filename: options.filename,
+    }),
   });
 
   if (!response.ok) {
@@ -99,7 +104,9 @@ export async function getScrapingResult(
     content: result.content,
     status: result.status,
     timestamp: result.timestamp,
-    taskId: result.task_id,
+    taskId: taskId,
+    format: result.format,
+    filename: result.filename,
   };
 }
 

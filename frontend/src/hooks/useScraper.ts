@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { getScrapingStatus } from "../api/scraper";
-import { ScrapingResult, ScrapingStatus } from "../types/types";
+import {
+  ScrapingOptions,
+  ScrapingResult,
+  ScrapingStatus,
+} from "../types/types";
 
 /**
  * Hook personnalisé pour gérer le scraping de documentation.
@@ -19,7 +23,7 @@ export function useScraper() {
    * Lance le scraping d'une URL et gère la progression
    * Le téléchargement est automatique une fois terminé
    */
-  const scrape = async (url: string) => {
+  const scrape = async (url: string, options: ScrapingOptions) => {
     setStatus({ isLoading: true, progress: 0, error: null });
     setResult(null);
 
@@ -30,7 +34,11 @@ export function useScraper() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify({
+          url,
+          format: options.format,
+          filename: options.filename,
+        }),
       });
 
       if (!response.ok) {
@@ -68,6 +76,8 @@ export function useScraper() {
               content: resultData.content,
               status: resultData.status,
               timestamp: resultData.timestamp,
+              format: resultData.format,
+              filename: resultData.filename,
             };
 
             setResult(scrapingResult);
@@ -76,7 +86,7 @@ export function useScraper() {
             // Déclencher automatiquement le téléchargement
             const link = document.createElement("a");
             link.href = `http://localhost:8000/api/download/${newTaskId}`;
-            link.setAttribute("download", "");
+            link.setAttribute("download", ""); // Le serveur gère le nom du fichier
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
