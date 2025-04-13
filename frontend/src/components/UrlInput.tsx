@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Download } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { ScrapingOptions } from "../types/types";
 
@@ -55,7 +55,7 @@ export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
           disabled={isLoading}
           className="absolute right-2 p-2 text-gray-600 hover:text-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Search className="w-5 h-5" />
+          <Download className="w-5 h-5" />
         </button>
       </div>
 
