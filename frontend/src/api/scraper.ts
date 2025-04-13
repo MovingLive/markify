@@ -80,6 +80,7 @@ export async function getScrapingProgress(
       totalPages: data.total_pages || 1,
     };
   } catch (error) {
+    console.error("Erreur lors de la récupération de la progression :", error);
     return { processedPages: 0, totalPages: 1 };
   }
 }

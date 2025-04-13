@@ -23,6 +23,7 @@ export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
         setFilename(lastSegment);
       } catch (error) {
         // URL invalide, ne rien faire
+        console.error("Invalid URL:", error);
       }
     }
   }, [url]);
