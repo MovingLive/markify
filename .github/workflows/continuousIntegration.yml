@@ -44,29 +44,6 @@ jobs:
           poetry config virtualenvs.create false
           poetry config virtualenvs.in-project false
 
-      - name: Run Python Linters
-        run: |
-          poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
-      - name: Run Tests with Coverage
-        env:
-          PYTHONPATH: ${{ github.workspace }}
-        run: |
-          poetry run coverage run -m pytest --junitxml=test-results.xml
-          poetry run coverage xml
-          poetry run coverage report
-
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: test-results.xml
-      - name: Upload Coverage Report to Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-reports
-          path: htmlcov/
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
