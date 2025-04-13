@@ -10,8 +10,7 @@ interface UrlInputProps {
 export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
   const [url, setUrl] = useState("");
   const [filename, setFilename] = useState("");
-  const [format, setFormat] =
-    useState<ScrapingOptions["format"]>("single_file");
+  const [format, setFormat] = useState<ScrapingOptions["format"]>("zip_flat");
 
   // Extraction automatique du dernier segment de l'URL comme nom de fichier
   useEffect(() => {
@@ -40,6 +39,7 @@ export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
 
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-3xl space-y-4">
+      {/* Barre d'URL sur toute la largeur */}
       <div className="relative flex items-center">
         <input
           type="url"
@@ -59,30 +59,14 @@ export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
         </button>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-        <div className="w-full sm:w-1/3">
-          <label
-            htmlFor="filename"
-            className="block text-sm font-medium text-gray-700 mb-1"
-          >
-            Nom du fichier
-          </label>
-          <input
-            type="text"
-            id="filename"
-            value={filename}
-            onChange={(e) => setFilename(e.target.value)}
-            placeholder="Nom du fichier à télécharger"
-            className="w-full px-4 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            disabled={isLoading}
-          />
-        </div>
-
-        <div className="w-full sm:w-2/3">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+      {/* Layout en deux colonnes pour le format et le nom de fichier */}
+      <div className="flex flex-col md:flex-row gap-6">
+        {/* Format d'exportation - moitié gauche */}
+        <div className="w-full md:w-1/2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
             Format d'exportation
           </label>
-          <div className="flex flex-col sm:flex-row flex-wrap gap-3">
+          <div className="flex flex-col space-y-3">
             <div className="flex items-center">
               <input
                 type="radio"
@@ -101,6 +85,7 @@ export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
                 Fichier unique (.md)
               </label>
             </div>
+
             <div className="flex items-center">
               <input
                 type="radio"
@@ -116,6 +101,7 @@ export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
                 Zip avec arborescence
               </label>
             </div>
+
             <div className="flex items-center">
               <input
                 type="radio"
@@ -132,6 +118,19 @@ export function UrlInput({ onSubmit, isLoading }: UrlInputProps) {
               </label>
             </div>
           </div>
+        </div>
+
+        {/* Nom du fichier - moitié droite */}
+        <div className="w-full md:w-1/2">
+          <input
+            type="text"
+            id="filename"
+            value={filename}
+            onChange={(e) => setFilename(e.target.value)}
+            placeholder="Nom du fichier à télécharger"
+            className="w-full px-4 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            disabled={isLoading}
+          />
         </div>
       </div>
     </form>

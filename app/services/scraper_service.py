@@ -1,7 +1,6 @@
 """Service de scraping de documentation web vers markdown."""
 
 import asyncio
-import os
 import uuid
 import zipfile
 from collections import deque
@@ -31,31 +30,32 @@ def get_file_path_from_url(url: str, base_url: str) -> str:
     """Convertit une URL en chemin de fichier relatif."""
     base_parsed = urlparse(base_url)
     url_parsed = urlparse(url)
-    
+
     # Si l'URL ne contient qu'un chemin relatif
     if url_parsed.path.startswith(base_parsed.path):
-        relative_path = url_parsed.path[len(base_parsed.path):].lstrip("/")
+        relative_path = url_parsed.path[len(base_parsed.path) :].lstrip("/")
     else:
         relative_path = url_parsed.path.lstrip("/")
-    
+
     # S'il n'y a pas de chemin, utiliser 'index'
     if not relative_path:
         relative_path = "index"
-    
+
     # Convertir les chemins en noms de fichiers valides
     # Remplacer les caractères non alphanumériques par des tirets
     import re
-    relative_path = re.sub(r'[^a-zA-Z0-9/\-_]', '-', relative_path)
-    
+
+    relative_path = re.sub(r"[^a-zA-Z0-9/\-_]", "-", relative_path)
+
     # S'assurer qu'il n'y a pas de double tirets
-    relative_path = re.sub(r'-+', '-', relative_path)
-    
+    relative_path = re.sub(r"-+", "-", relative_path)
+
     # Assurez-vous que le chemin se termine par .md
     if not relative_path.endswith(".md"):
         if relative_path.endswith("/"):
             relative_path = relative_path[:-1]
         relative_path += ".md"
-    
+
     return relative_path
 
 
@@ -103,7 +103,7 @@ async def process_url(
 
             if start_index is not None:
                 markdown = "\n".join(lines[start_index:])
-            
+
             # Stocker le contenu Markdown associé à l'URL - même si aucun titre h1 n'est trouvé
             url_to_markdown[url] = markdown
 
@@ -202,7 +202,7 @@ async def crawl_and_collect_async(start_url: str, task_id: str) -> dict[str, str
         try:
             # Créer un buffer en mémoire pour le ZIP
             zip_buffer = BytesIO()
-            
+
             # Créer un fichier ZIP avec compression
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 # Pour chaque URL, ajouter un fichier dans le ZIP
@@ -223,21 +223,22 @@ async def crawl_and_collect_async(start_url: str, task_id: str) -> dict[str, str
                             file_name = f"{file_name}.md"
                         # Nettoyer le nom de fichier des caractères non valides
                         import re
-                        file_name = re.sub(r'[^a-zA-Z0-9\-_.]', '-', file_name)
-                        file_name = re.sub(r'-+', '-', file_name)
+
+                        file_name = re.sub(r"[^a-zA-Z0-9\-_.]", "-", file_name)
+                        file_name = re.sub(r"-+", "-", file_name)
                         # Ajouter un index pour éviter les doublons
-                        file_path = f"{i+1:03d}_{file_name}"
-                    
+                        file_path = f"{i + 1:03d}_{file_name}"
+
                     # Éviter les doublons dans les noms de fichiers
                     if not file_path:
                         file_path = f"page_{i}.md"
-                    
+
                     # Encoder le contenu en bytes avec utf-8
-                    encoded_content = markdown_content.encode('utf-8')
-                    
+                    encoded_content = markdown_content.encode("utf-8")
+
                     # Ajouter le fichier au ZIP
                     zip_file.writestr(file_path, encoded_content)
-                
+
                 # Ajouter un fichier README avec des informations sur le scraping
                 readme_content = f"""# Documentation scrapée depuis {start_url}
 
@@ -248,19 +249,19 @@ Nombre de pages: {len(url_to_markdown)}
 
 {chr(10).join([f"- [{url}]({url})" for url in url_to_markdown.keys()])}
 """
-                zip_file.writestr("README.md", readme_content.encode('utf-8'))
-            
+                zip_file.writestr("README.md", readme_content.encode("utf-8"))
+
             # Rembobiner le buffer et récupérer le contenu
             zip_buffer.seek(0)
             zip_content = zip_buffer.getvalue()
-            
+
         except Exception as e:
             print(f"Erreur lors de la création du ZIP: {e}")
             # En cas d'erreur, on crée quand même un fichier ZIP de base avec un message d'erreur
             zip_buffer = BytesIO()
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 error_message = f"Erreur lors de la création du ZIP: {e}\n\nContenu brut:\n\n{all_markdown}"
-                zip_file.writestr("error.md", error_message.encode('utf-8'))
+                zip_file.writestr("error.md", error_message.encode("utf-8"))
             zip_buffer.seek(0)
             zip_content = zip_buffer.getvalue()
 
@@ -275,7 +276,9 @@ Nombre de pages: {len(url_to_markdown)}
     return url_to_markdown
 
 
-def start_scraping_task(url: str, format: ExportFormat = ExportFormat.SINGLE_FILE, filename: str | None = None) -> str:
+def start_scraping_task(
+    url: str, format: ExportFormat = ExportFormat.SINGLE_FILE, filename: str | None = None
+) -> str:
     """Démarre une tâche de scraping et retourne son identifiant."""
     task_id = str(uuid.uuid4())
 
@@ -283,7 +286,9 @@ def start_scraping_task(url: str, format: ExportFormat = ExportFormat.SINGLE_FIL
     if not filename:
         parsed_url = urlparse(url)
         path_segments = parsed_url.path.strip("/").split("/")
-        filename = path_segments[-1] if path_segments and path_segments[-1] else "documentation"
+        filename = (
+            path_segments[-1] if path_segments and path_segments[-1] else "documentation"
+        )
 
     # Initialiser l'état de la tâche
     scraping_tasks[task_id] = {
@@ -343,5 +348,5 @@ def get_task_filename(task_id: str) -> str | None:
     """Récupère le nom de fichier d'une tâche de scraping."""
     if task_id not in scraping_tasks:
         return None
-    
+
     return scraping_tasks[task_id].get("filename", "documentation")
