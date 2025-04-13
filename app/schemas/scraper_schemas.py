@@ -11,6 +11,7 @@ class ExportFormat(str, Enum):
 
     SINGLE_FILE = "single_file"
     ZIP_FILES = "zip_files"
+    ZIP_FLAT = "zip_flat"
 
 
 class ScraperRequest(BaseModel):

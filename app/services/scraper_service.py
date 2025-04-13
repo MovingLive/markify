@@ -198,7 +198,7 @@ async def crawl_and_collect_async(start_url: str, task_id: str) -> dict[str, str
 
     # Créer le contenu ZIP si nécessaire
     zip_content = None
-    if scraping_tasks[task_id]["format"] == ExportFormat.ZIP_FILES:
+    if scraping_tasks[task_id]["format"] in [ExportFormat.ZIP_FILES, ExportFormat.ZIP_FLAT]:
         try:
             # Créer un buffer en mémoire pour le ZIP
             zip_buffer = BytesIO()
@@ -207,8 +207,26 @@ async def crawl_and_collect_async(start_url: str, task_id: str) -> dict[str, str
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 # Pour chaque URL, ajouter un fichier dans le ZIP
                 for i, (url, markdown_content) in enumerate(url_to_markdown.items()):
-                    # Générer un nom de fichier unique basé sur l'URL
-                    file_path = get_file_path_from_url(url, start_url)
+                    # Déterminer le chemin du fichier en fonction du format
+                    if scraping_tasks[task_id]["format"] == ExportFormat.ZIP_FILES:
+                        # Format hiérarchique - conserver la structure des dossiers
+                        file_path = get_file_path_from_url(url, start_url)
+                    else:  # ZIP_FLAT
+                        # Format plat - tous les fichiers à la racine
+                        # Extraire uniquement le nom du fichier et ajouter un indice pour éviter les collisions
+                        parsed_url = urlparse(url)
+                        path_segments = parsed_url.path.strip("/").split("/")
+                        file_name = path_segments[-1] if path_segments else f"page_{i}"
+                        if not file_name:
+                            file_name = f"page_{i}"
+                        if not file_name.endswith(".md"):
+                            file_name = f"{file_name}.md"
+                        # Nettoyer le nom de fichier des caractères non valides
+                        import re
+                        file_name = re.sub(r'[^a-zA-Z0-9\-_.]', '-', file_name)
+                        file_name = re.sub(r'-+', '-', file_name)
+                        # Ajouter un index pour éviter les doublons
+                        file_path = f"{i+1:03d}_{file_name}"
                     
                     # Éviter les doublons dans les noms de fichiers
                     if not file_path:

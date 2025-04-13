@@ -4,7 +4,7 @@ export interface ScrapingResult {
   status: "success" | "error";
   timestamp: string;
   taskId?: string; // ID de la tâche pour le téléchargement
-  format?: "single_file" | "zip_files";
+  format?: "single_file" | "zip_files" | "zip_flat";
   filename?: string;
 }
 
@@ -15,6 +15,6 @@ export interface ScrapingStatus {
 }
 
 export interface ScrapingOptions {
-  format: "single_file" | "zip_files";
+  format: "single_file" | "zip_files" | "zip_flat";
   filename: string;
 }
