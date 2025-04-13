@@ -3,8 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import uvicorn
 
-from .models.schemas import ScrapeRequest, ScrapingResult, ScrapingProgress
-from .services.documentation_scraper import DocumentationScraper
+from ..frontend.src.server.models.schemas import ScrapeRequest, ScrapingResult, ScrapingProgress
+from ..frontend.src.server.services.documentation_scraper import DocumentationScraper
 
 # Store active scraping jobs
 active_scrapers: dict[str, DocumentationScraper] = {}

@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "app"
+version = "0.1.0"
+description = "Doc Scrapper To Md API"
+authors = ["Steve <steve.magne@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+unicorn = "^2.1.1"
+pydantic = "^2.10.3"
+beautifulsoup4 = "^4.12.3"
+html2text = "^2024.2.26"
+httpx = "^0.28.1"
+python-multipart = "^0.0.19"
+aiohttp = "^3.11.10"
+uvicorn = "^0.34.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
