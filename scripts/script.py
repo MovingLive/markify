@@ -70,7 +70,7 @@ def crawl_and_collect(start_url, file_name_output, tree_output_dir):
         print(f"Traitement de : {url}")
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=100)
             if response.status_code != 200:
                 continue
             html_content = response.text
