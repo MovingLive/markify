@@ -1,5 +1,17 @@
 import { ScrapingOptions, ScrapingResult } from "../types/types";
 
+// Ajout de la déclaration de type pour ImportMetaEnv et ImportMeta
+declare interface ImportMetaEnv {
+  readonly VITE_API_BASE_URL?: string;
+}
+
+// Correction pour s'assurer que les types sont correctement appliqués
+declare global {
+  interface ImportMeta {
+    readonly env: ImportMetaEnv;
+  }
+}
+
 // Règle: Utilisation de constantes pour les valeurs de configuration
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || "http://localhost:8000/api";
