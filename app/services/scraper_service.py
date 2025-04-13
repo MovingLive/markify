@@ -132,8 +132,7 @@ async def process_url(
         )
 
     except Exception as e:
-        print(f"Échec du traitement de {url}: {e}")
-
+        logging.error(f"Échec du traitement de {url}: {e}")
     return new_urls_to_process
 
 
