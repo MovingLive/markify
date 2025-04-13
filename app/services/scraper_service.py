@@ -1,6 +1,7 @@
 """Service de scraping de documentation web vers markdown."""
 
 import asyncio
+import logging
 import uuid
 import zipfile
 from collections import deque
