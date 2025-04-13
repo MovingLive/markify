@@ -6,6 +6,10 @@ import {
   ScrapingStatus,
 } from "../types/types";
 
+// Règle: Utilisation de constantes pour les valeurs de configuration
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://tutu:8000/api";
+
 /**
  * Hook personnalisé pour gérer le scraping de documentation.
  * L'expérience est transparente pour l'utilisateur avec téléchargement automatique.
@@ -29,7 +33,7 @@ export function useScraper() {
 
     try {
       // Démarrer le scraping et obtenir le taskId
-      const response = await fetch("http://localhost:8000/api/scrape", {
+      const response = await fetch(`${API_BASE_URL}/scrape`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -64,9 +68,7 @@ export function useScraper() {
             clearInterval(pollInterval);
 
             // Récupérer le résultat (cela déclenchera automatiquement le téléchargement)
-            const response = await fetch(
-              `http://localhost:8000/api/result/${newTaskId}`
-            );
+            const response = await fetch(`${API_BASE_URL}/result/${newTaskId}`);
             const resultData = await response.json();
 
             // Créer un objet de résultat et l'assigner au state
@@ -85,7 +87,7 @@ export function useScraper() {
 
             // Déclencher automatiquement le téléchargement
             const link = document.createElement("a");
-            link.href = `http://localhost:8000/api/download/${newTaskId}`;
+            link.href = `${API_BASE_URL}/download/${newTaskId}`;
             link.setAttribute("download", ""); // Le serveur gère le nom du fichier
             document.body.appendChild(link);
             link.click();
