@@ -1,10 +1,10 @@
 from datetime import datetime
 from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Path, Query
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import JSONResponse, Response
 
 from app.schemas.scraper_schemas import ContentResponse, ScraperRequest, ScraperResponse, TaskStatus
-from app.services.scraper_service import get_result_content, get_task_status, start_scraping_task
+from app.services.scraper_service import get_markdown_content, get_task_status, start_scraping_task
 
 api_router = APIRouter()
 
@@ -19,8 +19,7 @@ async def health():
 @api_router.post("/scrape", response_model=ScraperResponse)
 async def scrape_documentation(
     request: ScraperRequest, 
-    background_tasks: BackgroundTasks,
-    save_to_disk: bool = Query(True, description="Si true, sauvegarde les résultats sur disque. Sinon, les garde uniquement en mémoire.")
+    background_tasks: BackgroundTasks
 ) -> ScraperResponse:
     """
     Démarre une tâche de scraping pour l'URL spécifiée.
@@ -29,7 +28,7 @@ async def scrape_documentation(
     que vous pouvez utiliser pour vérifier son état.
     """
     # Démarrer le scraping en arrière-plan
-    task_id = start_scraping_task(str(request.url), save_to_disk=save_to_disk)
+    task_id = start_scraping_task(str(request.url))
     
     return ScraperResponse(
         task_id=task_id,
@@ -73,7 +72,7 @@ async def get_scraping_result(task_id: str = Path(..., description="L'identifian
     if task_status["status"] != "completed":
         raise HTTPException(status_code=400, detail="La tâche n'est pas encore terminée")
     
-    content, _ = get_result_content(task_id)
+    content = get_markdown_content(task_id)
     
     if not content:
         raise HTTPException(status_code=404, detail="Contenu non trouvé")
@@ -89,8 +88,7 @@ async def get_scraping_result(task_id: str = Path(..., description="L'identifian
 
 @api_router.get("/download/{task_id}")
 async def download_markdown_file(
-    task_id: str = Path(..., description="L'identifiant de la tâche de scraping"),
-    as_attachment: bool = Query(True, description="Si true, télécharge le fichier. Sinon, affiche le contenu dans le navigateur.")
+    task_id: str = Path(..., description="L'identifiant de la tâche de scraping")
 ) -> Response:
     """
     Télécharge le fichier Markdown généré par une tâche de scraping spécifique.
@@ -103,7 +101,7 @@ async def download_markdown_file(
     if task_status["status"] != "completed":
         raise HTTPException(status_code=400, detail="La tâche n'est pas encore terminée")
     
-    content, file_path = get_result_content(task_id)
+    content = get_markdown_content(task_id)
     
     if not content:
         raise HTTPException(status_code=404, detail="Contenu non trouvé")
@@ -113,17 +111,7 @@ async def download_markdown_file(
     filename = url.split("//")[-1].split("/")[0].replace(".", "_")
     filename = f"{filename}_{datetime.now().strftime('%Y%m%d')}.md"
     
-    # Si l'option save_to_disk est activée et que le fichier existe
-    if task_status.get("save_to_disk", True) and file_path:
-        return FileResponse(
-            path=file_path,
-            filename=filename,
-            media_type="text/markdown",
-            content_disposition_type="attachment" if as_attachment else "inline"
-        )
-    else:
-        # Sinon, créer une réponse directe à partir du contenu en mémoire
-        response = Response(content=content, media_type="text/markdown")
-        if as_attachment:
-            response.headers["Content-Disposition"] = f"attachment; filename={filename}"
-        return response
+    # Création d'une réponse directe à partir du contenu en mémoire
+    response = Response(content=content, media_type="text/markdown")
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    return response

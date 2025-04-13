@@ -1,7 +1,11 @@
-import { ScrapingResult } from "@/types/types";
+import { ScrapingResult, ScrapingStatus } from "@/types/types";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
+/**
+ * Déclenche le scraping d'une URL et suit sa progression.
+ * Une fois terminé, télécharge automatiquement le fichier markdown.
+ */
 export async function scrapeDocumentation(
   url: string
 ): Promise<ScrapingResult> {
@@ -56,19 +60,8 @@ export async function getScrapingStatus(
 }
 
 export async function getScrapingProgress(
-  url: string
+  taskId: string
 ): Promise<{ processedPages: number; totalPages: number }> {
-  // Cette fonction est utilisée par le hook useScraper pour récupérer la progression
-  // Puisque nous n'avons pas le taskId direct ici, nous utilisons une approche différente
-  // En réalité, cette fonction devrait être refactorisée pour utiliser le taskId
-  const taskId = localStorage.getItem(
-    `scraping_task_${encodeURIComponent(url)}`
-  );
-
-  if (!taskId) {
-    return { processedPages: 0, totalPages: 1 };
-  }
-
   try {
     const response = await fetch(`${API_BASE_URL}/progress/${taskId}`);
 
@@ -97,6 +90,10 @@ export async function getScrapingResult(
   }
 
   const result = await response.json();
+
+  // Déclencher automatiquement le téléchargement du fichier
+  downloadMarkdownFile(taskId);
+
   return {
     url: result.url,
     content: result.content,
@@ -106,6 +103,18 @@ export async function getScrapingResult(
   };
 }
 
-export function getDownloadUrl(taskId: string): string {
-  return `${API_BASE_URL}/download/${taskId}`;
+/**
+ * Télécharge le fichier markdown directement dans le navigateur
+ * sans avoir besoin de cliquer sur un bouton.
+ */
+export function downloadMarkdownFile(taskId: string): void {
+  const downloadUrl = `${API_BASE_URL}/download/${taskId}`;
+
+  // Créer un lien invisible et le cliquer pour déclencher le téléchargement
+  const link = document.createElement("a");
+  link.href = downloadUrl;
+  link.setAttribute("download", ""); // Le serveur gère le nom du fichier
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }

@@ -23,37 +23,6 @@ def normalize_url(url: str) -> str:
     return url
 
 
-def get_file_path_from_url(url: str, base_url: str, output_dir: str) -> str:
-    """Convertit une URL en chemin de fichier local pour l'arborescence."""
-    base_parsed = urlparse(base_url)
-    url_parsed = urlparse(url)
-
-    # Si l'URL ne contient qu'un chemin relatif
-    if url_parsed.path.startswith(base_parsed.path):
-        relative_path = url_parsed.path[len(base_parsed.path):].lstrip("/")
-    else:
-        relative_path = url_parsed.path.lstrip("/")
-
-    # S'il n'y a pas de chemin, utiliser 'index'
-    if not relative_path:
-        relative_path = "index"
-
-    # Assurez-vous que le chemin se termine par .md
-    if not relative_path.endswith(".md"):
-        if relative_path.endswith("/"):
-            relative_path = relative_path[:-1]
-        relative_path += ".md"
-
-    return os.path.join(output_dir, relative_path)
-
-
-def ensure_directory_exists(file_path: str) -> None:
-    """Crée le répertoire pour un fichier donné s'il n'existe pas."""
-    directory = os.path.dirname(file_path)
-    if not os.path.exists(directory):
-        os.makedirs(directory, exist_ok=True)
-
-
 async def process_url(
     url: str,
     session: aiohttp.ClientSession,
@@ -119,7 +88,7 @@ async def process_url(
         scraping_tasks[task_id]["processed_pages"] += 1
         scraping_tasks[task_id]["total_pages"] = len(total_urls)
         scraping_tasks[task_id]["progress"] = min(
-            100, int((scraping_tasks[task_id]["processed_pages"] / max(len(total_urls), 1)) * 100)
+             100, int((scraping_tasks[task_id]["processed_pages"] / max(len(total_urls), 1)) * 100)
         )
         
     except Exception as e:
@@ -128,28 +97,11 @@ async def process_url(
     return new_urls_to_process
 
 
-async def crawl_and_collect_async(start_url: str, output_dir: Optional[str] = None, task_id: str = None) -> Tuple[str, Dict[str, str], str]:
+async def crawl_and_collect_async(start_url: str, task_id: str) -> Dict[str, str]:
     """
     Version asynchrone de la fonction de crawl qui parcourt la documentation
     et collecte le contenu Markdown de chaque page.
-    
-    Si output_dir est None, ne sauvegarde pas sur disque et retourne uniquement le contenu.
     """
-    # Configuration des chemins de sortie si demandé
-    single_file_path = None
-    tree_dir = None
-    
-    if output_dir:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        single_file_dir = os.path.join(output_dir, "single")
-        tree_dir = os.path.join(output_dir, "tree", timestamp)
-        
-        # Assurer que les répertoires existent
-        ensure_directory_exists(single_file_dir)
-        ensure_directory_exists(tree_dir)
-        
-        single_file_path = os.path.join(single_file_dir, f"{task_id}.md")
-    
     # Initialisation des structures de données
     visited = set()
     queue = deque([start_url])
@@ -158,13 +110,12 @@ async def crawl_and_collect_async(start_url: str, output_dir: Optional[str] = No
     base_path = urlparse(start_url).path
     url_to_markdown = {}
 
-    # Initialiser la progression si task_id est fourni
-    if task_id:
-        scraping_tasks[task_id]["start_time"] = datetime.now().isoformat()
-        scraping_tasks[task_id]["processed_pages"] = 0
-        scraping_tasks[task_id]["total_pages"] = 1  # Au moins l'URL de départ
-        scraping_tasks[task_id]["progress"] = 0
-        scraping_tasks[task_id]["url"] = start_url
+    # Initialiser la progression
+    scraping_tasks[task_id]["start_time"] = datetime.now().isoformat()
+    scraping_tasks[task_id]["processed_pages"] = 0
+    scraping_tasks[task_id]["total_pages"] = 1  # Au moins l'URL de départ
+    scraping_tasks[task_id]["progress"] = 0
+    scraping_tasks[task_id]["url"] = start_url
 
     async with aiohttp.ClientSession() as session:
         while queue:
@@ -195,40 +146,20 @@ async def crawl_and_collect_async(start_url: str, output_dir: Optional[str] = No
 
     # Combiner tout le contenu Markdown en un seul texte
     all_markdown = "\n\n".join(url_to_markdown.values())
-    
-    # Sauvegarder sur disque si un répertoire de sortie est spécifié
-    if output_dir:
-        # Écrire dans un fichier unique
-        with open(single_file_path, "w", encoding="utf-8") as f:
-            f.write(all_markdown)
 
-        # Créer l'arborescence de fichiers
-        for url, content in url_to_markdown.items():
-            file_path = get_file_path_from_url(url, start_url, tree_dir)
-            ensure_directory_exists(file_path)
-            
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write(content)
+    # Mettre à jour l'état de la tâche
+    scraping_tasks[task_id]["status"] = "completed"
+    scraping_tasks[task_id]["progress"] = 100
+    scraping_tasks[task_id]["end_time"] = datetime.now().isoformat()
+    scraping_tasks[task_id]["markdown_content"] = all_markdown
+    scraping_tasks[task_id]["url_to_markdown"] = url_to_markdown
 
-    # Mettre à jour l'état de la tâche si task_id est fourni
-    if task_id:
-        scraping_tasks[task_id]["status"] = "completed"
-        scraping_tasks[task_id]["progress"] = 100
-        scraping_tasks[task_id]["end_time"] = datetime.now().isoformat()
-        if output_dir:
-            scraping_tasks[task_id]["output_file"] = single_file_path
-            scraping_tasks[task_id]["output_dir"] = tree_dir
-        scraping_tasks[task_id]["markdown_content"] = all_markdown
-
-    return single_file_path, url_to_markdown, all_markdown
+    return url_to_markdown
 
 
-def start_scraping_task(url: str, save_to_disk: bool = True) -> str:
+def start_scraping_task(url: str) -> str:
     """Démarre une tâche de scraping et retourne son identifiant."""
     task_id = str(uuid.uuid4())
-    
-    # Créer le répertoire de sortie pour ce user/session si on sauvegarde sur disque
-    output_dir = os.path.join("output", task_id) if save_to_disk else None
     
     # Initialiser l'état de la tâche
     scraping_tasks[task_id] = {
@@ -239,14 +170,12 @@ def start_scraping_task(url: str, save_to_disk: bool = True) -> str:
         "processed_pages": 0,
         "total_pages": 0,
         "progress": 0,
-        "output_file": None,
-        "output_dir": output_dir,
         "markdown_content": None,
-        "save_to_disk": save_to_disk
+        "url_to_markdown": None
     }
     
     # Lancer la tâche en arrière-plan
-    asyncio.create_task(crawl_and_collect_async(url, output_dir, task_id))
+    asyncio.create_task(crawl_and_collect_async(url, task_id))
     
     return task_id
 
@@ -259,22 +188,17 @@ def get_task_status(task_id: str) -> Dict:
     return scraping_tasks[task_id]
 
 
-def get_result_content(task_id: str) -> Tuple[str, Optional[str]]:
-    """Récupère le contenu du résultat d'une tâche de scraping."""
+def get_markdown_content(task_id: str) -> Optional[str]:
+    """Récupère le contenu Markdown d'une tâche de scraping terminée."""
     if task_id not in scraping_tasks or scraping_tasks[task_id]["status"] != "completed":
-        return None, None
+        return None
     
-    # Récupérer directement le contenu markdown si disponible
-    content = scraping_tasks[task_id].get("markdown_content")
-    if content:
-        return content, None
+    return scraping_tasks[task_id].get("markdown_content")
+
+
+def get_url_to_markdown(task_id: str) -> Optional[Dict[str, str]]:
+    """Récupère la cartographie URL -> Markdown d'une tâche de scraping terminée."""
+    if task_id not in scraping_tasks or scraping_tasks[task_id]["status"] != "completed":
+        return None
     
-    # Sinon essayer de lire le fichier
-    file_path = scraping_tasks[task_id].get("output_file")
-    if not file_path or not os.path.exists(file_path):
-        return None, None
-    
-    with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
-    
-    return content, file_path
+    return scraping_tasks[task_id].get("url_to_markdown")
