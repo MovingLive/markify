@@ -1,7 +1,7 @@
-import React from 'react';
-import { Check, Download } from 'lucide-react';
-import { ScrapingResult } from '../types/types';
-import { downloadMarkdownFile } from '../api/scraper';
+import { Check, Download } from "lucide-react";
+import React from "react";
+import { downloadMarkdownFile } from "../api/scraper";
+import { ScrapingResult } from "../types/types";
 
 interface ResultViewProps {
   result: ScrapingResult;

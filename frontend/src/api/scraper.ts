@@ -1,25 +1,20 @@
-import { ScrapingResult, ScrapingStatus } from "@/types/types";
+import { ScrapingResult } from "@/types/types";
 
 const API_BASE_URL = "http://localhost:8000/api";
 
 /**
  * Déclenche le scraping d'une URL et suit sa progression.
  * Une fois terminé, télécharge automatiquement le fichier markdown.
- * 
- * @param url L'URL à scraper
- * @param useCrawl4ai Si true, utilise l'API crawl4ai via MCP
- * @returns Le résultat du scraping
  */
 export async function scrapeDocumentation(
-  url: string,
-  useCrawl4ai: boolean = false
+  url: string
 ): Promise<ScrapingResult> {
   const response = await fetch(`${API_BASE_URL}/scrape`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ url, use_crawl4ai: useCrawl4ai }),
+    body: JSON.stringify({ url }),
   });
 
   if (!response.ok) {

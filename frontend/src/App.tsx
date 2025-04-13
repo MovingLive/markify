@@ -1,16 +1,12 @@
-import React from 'react';
-import { FileSearch } from 'lucide-react';
-import { UrlInput } from './components/UrlInput';
-import { ProgressIndicator } from './components/ProgressIndicator';
-import { ResultView } from './components/ResultView';
-import { useScraper } from './hooks/useScraper';
+import { FileSearch } from "lucide-react";
+import React from "react";
+import { ProgressIndicator } from "./components/ProgressIndicator";
+import { ResultView } from "./components/ResultView";
+import { UrlInput } from "./components/UrlInput";
+import { useScraper } from "./hooks/useScraper";
 
 function App() {
-  const { scrape, status, result } = useScraper();
-
-  const handleScrape = (url: string, useCrawl4ai: boolean) => {
-    scrape(url, useCrawl4ai);
-  };
+  const { scrape, downloadResult, status, result } = useScraper();
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -24,12 +20,13 @@ function App() {
               Documentation Scraper
             </h1>
             <p className="text-gray-600 max-w-xl">
-              Entrez une URL de documentation pour extraire automatiquement son contenu et le convertir en format Markdown.
-              Parfait pour la lecture hors ligne ou la création de contextes pour l'IA.
+              Entrez une URL de documentation pour extraire automatiquement son
+              contenu et le convertir en format Markdown. Parfait pour la
+              lecture hors ligne ou la création de contextes pour l'IA.
             </p>
           </div>
 
-          <UrlInput onSubmit={handleScrape} isLoading={status.isLoading} />
+          <UrlInput onSubmit={scrape} isLoading={status.isLoading} />
 
           {status.isLoading && <ProgressIndicator progress={status.progress} />}
 

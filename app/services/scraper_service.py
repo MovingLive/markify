@@ -1,17 +1,17 @@
 """Service de scraping de documentation web vers markdown."""
+
 import asyncio
 import uuid
 from collections import deque
 from datetime import datetime
-from typing import Dict, List, Optional, Set, Tuple
 from urllib.parse import urldefrag, urljoin, urlparse
 
 import aiohttp
 import html2text
 from bs4 import BeautifulSoup
 
-from app.services.crawl4ai_service import fetch_mcp_crawl4ai
-from app.services.task_store import scraping_tasks
+# Dictionnaire global pour suivre la progression des tâches de scraping
+scraping_tasks: dict[str, dict] = {}
 
 
 def normalize_url(url: str) -> str:
@@ -27,19 +27,19 @@ async def process_url(
     session: aiohttp.ClientSession,
     base_netloc: str,
     base_path: str,
-    visited: Set[str],
-    url_to_markdown: Dict[str, str],
-    total_urls: List[str],
+    visited: set[str],
+    url_to_markdown: dict[str, str],
+    total_urls: list[str],
     task_id: str,
-) -> List[str]:
+) -> list[str]:
     """Traite une URL spécifique et extrait son contenu en markdown."""
     new_urls_to_process = []
-    
+
     try:
         async with session.get(url, timeout=30) as response:
             if response.status != 200:
                 return new_urls_to_process
-                
+
             html_content = await response.text()
             soup = BeautifulSoup(html_content, "html.parser")
 
@@ -63,7 +63,7 @@ async def process_url(
                 if line.startswith("# "):
                     start_index = i
                     break
-            
+
             if start_index is not None:
                 markdown = "\n".join(lines[start_index:])
                 # Stocker le contenu Markdown associé à l'URL
@@ -87,16 +87,19 @@ async def process_url(
         scraping_tasks[task_id]["processed_pages"] += 1
         scraping_tasks[task_id]["total_pages"] = len(total_urls)
         scraping_tasks[task_id]["progress"] = min(
-             100, int((scraping_tasks[task_id]["processed_pages"] / max(len(total_urls), 1)) * 100)
+            100,
+            int(
+                (scraping_tasks[task_id]["processed_pages"] / max(len(total_urls), 1)) * 100
+            ),
         )
-        
+
     except Exception as e:
         print(f"Échec du traitement de {url}: {e}")
-        
+
     return new_urls_to_process
 
 
-async def crawl_and_collect_async(start_url: str, task_id: str) -> Dict[str, str]:
+async def crawl_and_collect_async(start_url: str, task_id: str) -> dict[str, str]:
     """
     Version asynchrone de la fonction de crawl qui parcourt la documentation
     et collecte le contenu Markdown de chaque page.
@@ -132,7 +135,16 @@ async def crawl_and_collect_async(start_url: str, task_id: str) -> Dict[str, str
 
             # Traiter ce lot d'URLs en parallèle
             tasks = [
-                process_url(url, session, base_netloc, base_path, visited, url_to_markdown, total_urls, task_id)
+                process_url(
+                    url,
+                    session,
+                    base_netloc,
+                    base_path,
+                    visited,
+                    url_to_markdown,
+                    total_urls,
+                    task_id,
+                )
                 for url in batch_urls
             ]
             results = await asyncio.gather(*tasks)
@@ -156,10 +168,10 @@ async def crawl_and_collect_async(start_url: str, task_id: str) -> Dict[str, str
     return url_to_markdown
 
 
-def start_scraping_task(url: str, use_crawl4ai: bool = False) -> str:
+def start_scraping_task(url: str) -> str:
     """Démarre une tâche de scraping et retourne son identifiant."""
     task_id = str(uuid.uuid4())
-    
+
     # Initialiser l'état de la tâche
     scraping_tasks[task_id] = {
         "status": "running",
@@ -171,37 +183,33 @@ def start_scraping_task(url: str, use_crawl4ai: bool = False) -> str:
         "progress": 0,
         "markdown_content": None,
         "url_to_markdown": None,
-        "use_crawl4ai": use_crawl4ai
     }
-    
-    # Lancer la tâche en arrière-plan en fonction du mode choisi
-    if use_crawl4ai:
-        asyncio.create_task(fetch_mcp_crawl4ai(url, task_id))
-    else:
-        asyncio.create_task(crawl_and_collect_async(url, task_id))
-    
+
+    # Lancer la tâche en arrière-plan
+    asyncio.create_task(crawl_and_collect_async(url, task_id))
+
     return task_id
 
 
-def get_task_status(task_id: str) -> Dict:
+def get_task_status(task_id: str) -> dict:
     """Récupère le statut d'une tâche de scraping."""
     if task_id not in scraping_tasks:
         return {"status": "not_found"}
-    
+
     return scraping_tasks[task_id]
 
 
-def get_markdown_content(task_id: str) -> Optional[str]:
+def get_markdown_content(task_id: str) -> str | None:
     """Récupère le contenu Markdown d'une tâche de scraping terminée."""
     if task_id not in scraping_tasks or scraping_tasks[task_id]["status"] != "completed":
         return None
-    
+
     return scraping_tasks[task_id].get("markdown_content")
 
 
-def get_url_to_markdown(task_id: str) -> Optional[Dict[str, str]]:
+def get_url_to_markdown(task_id: str) -> dict[str, str] | None:
     """Récupère la cartographie URL -> Markdown d'une tâche de scraping terminée."""
     if task_id not in scraping_tasks or scraping_tasks[task_id]["status"] != "completed":
         return None
-    
+
     return scraping_tasks[task_id].get("url_to_markdown")
