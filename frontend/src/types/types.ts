@@ -1,8 +1,9 @@
 export interface ScrapingResult {
   url: string;
   content: string;
-  status: 'success' | 'error';
+  status: "success" | "error";
   timestamp: string;
+  taskId?: string; // ID de la tâche pour le téléchargement
 }
 
 export interface ScrapingStatus {

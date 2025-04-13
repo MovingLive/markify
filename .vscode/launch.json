@@ -1,0 +1,30 @@
+{
+    "configurations": [
+        {
+            "name": "Launch script.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/script.py",
+            "envFile": "${workspaceFolder}/.env",
+            "console": "internalConsole"
+        },
+        {
+            "type": "debugpy",
+            "request": "launch",
+            "name": "FastAPI HTTPS",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--reload",
+                // "--ssl-keyfile=app/certs/key.pem",
+                // "--ssl-certfile=app/certs/cert.pem",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/app",
+                "FORCE_HTTPS": "true"
+            },
+            "justMyCode": true,
+            "console": "internalConsole"
+        },
+    ]
+}
