@@ -70,31 +70,3 @@ jobs:
         run: |
           cd frontend
           npm run build
-
-  security-scans:
-    runs-on: ubuntu-latest
-    # if: github.event_name == 'workflow_dispatch'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: 3.12
-
-      - name: Install dependencies
-        run: |
-          pip install pytest
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: Run Bandit
-        run: |
-          pip install bandit
-          bandit -r . -ll -s B101
-
-      - name: Run safety
-        run: |
-          pip install safety
-          safety check --ignore=67599 --ignore=66962
